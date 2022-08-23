@@ -1,0 +1,9 @@
+{
+    "port": 8000,
+    "mongoConnectionstring": {
+        "port": "27017",
+        "domain": "localhost",
+        "dbName": "My-Health-Routine"
+    },
+    "jwtPrivateKey": "my private secret"
+}
