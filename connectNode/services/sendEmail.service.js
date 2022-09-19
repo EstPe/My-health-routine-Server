@@ -56,9 +56,9 @@ class EmailService {
             to: emailUser.email,
             subject: `Thank you for your order `,
             html: ` <h1 align="center">${emailUser.name} Thank you for your order</h1>
+              <h3 align="right">total price after delivery ${sum}</h3>
             <img src="https://img.freepik.com/premium-vector/thank-you-your-order-card-design-online-buyers-illustration-vector_180786-94.jpg?w=2000" style="max-height: 550px; width: 100%;margin-left:25%" />`,
         };
-        // <h3 align="right">total price after delivery ${sum}</h3>
 
         this.test(mailOptions);
     };
@@ -87,6 +87,34 @@ class EmailService {
             to: emailUser.email,
             subject: `medican stoke runing out`,
             html: `<h1 align="center">medican stoke runing out please restock if necessary</h1>
+        <img src="https://www.jetsetter.com//uploads/sites/7/2018/04/15AF_lmk-1380x690.jpeg" style="max-height: 250px; width: 50%; margin-right: 25%" />
+        `,
+        };
+        this.test(mailOptions);
+    };
+    missTaking = (emailUser) => {
+        var mailOptions = {
+            from: "peretz398@gmail.com",
+            to: "peretz398@gmail.com",
+            subject: `notice you miss take a pill`,
+            html: `
+      <h1> hey user you miss take</h1>
+      <h4>we expand your taking dates for one more day </h4>
+      <h5>My Health Routine team</h5>
+        <img src="https://www.jetsetter.com//uploads/sites/7/2018/04/15AF_lmk-1380x690.jpeg" style="max-height: 250px; width: 50%; margin-right: 25%" />
+        `,
+        };
+        this.test(mailOptions);
+    };
+    stopTaking = (emailUser) => {
+        var mailOptions = {
+            from: "peretz398@gmail.com",
+            to: "peretz398@gmail.com",
+            subject: `notice you did not approve`,
+            html: `
+      <h1> hey user you did not approv taking pills latly</h1>
+      <h4>we will stop sending reminder  </h4>
+      <h5>My Health Routine team</h5>
         <img src="https://www.jetsetter.com//uploads/sites/7/2018/04/15AF_lmk-1380x690.jpeg" style="max-height: 250px; width: 50%; margin-right: 25%" />
         `,
         };

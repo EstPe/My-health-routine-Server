@@ -1,7 +1,9 @@
 const MedicneUser = require("../models/MedicneUser.model");
 const userService = require("../services/user.service");
 const Medicne = require("../models/Medicne.model");
+const MedicneService = require("../services/MedDataBase.service");
 const dateT = require("date-and-time");
+
 class MedicneUserService {
     addMedicneUser = async(Medicne) => {
         let newUserMedicne = await MedicneUser.create({
@@ -10,34 +12,45 @@ class MedicneUserService {
             MgQuantity: Medicne.MgQuantity,
             TakingTime: Medicne.TakingTime,
             AmountOfPills: Medicne.AmountOfPills,
-            CapletsByHour: Medicne.CapletsByHour,
+            ForHowLong: Medicne.ForHowLong,
             StartDay: Medicne.StartDay,
             didApprove: Medicne.didApprove,
         });
-        this.addMedicne(newUserMedicne);
+        await MedicneService.addMedicne(newUserMedicne);
         return newUserMedicne;
     };
-    addMedicne = async(newMedicne) => {
-        let medExist = await Medicne.findOne({
-            nameMed: medName,
-        });
 
-        if (!medExist) {
-            let medName = `${newMedicne.MedicneName} ${newMedicne.MgQuantity}MG`;
-            let addMedicne = await Medicne.create({
-                nameMed: medName,
-                size: newMedicne.MgQuantity,
-            });
-            if (addMedicne) return true;
-        } else return false;
-    };
     getMedicneUser = async(UserMedicne) => {
         let Usermedicne = await MedicneUser.find({
             userId: UserMedicne.userId,
-            "date.getMonth()": {
-                $eq: new Date().getMonth() + 1,
+            // $or: [{
+            $expr: {
+                $eq: [
+                    { $month: "$StartDay" },
+                    new Date(UserMedicne.monthYear).getMonth() + 1,
+                ],
+                // $eq: [{ $year: "$StartDay" }, new Date().getFullYear()],
             },
+            // }, ],
+            // $expr: {
+            //     $eq: [{ $year: "$StartDay" }, new Date().getFullYear()],
+            // },
         });
+
+        return Usermedicne;
+    };
+    onlyOneInMonth = async(UserMedicne) => {
+        let Usermedicne = await MedicneUser.find({
+            userId: UserMedicne.userId,
+            $expr: {
+                $eq: [
+                    { $month: "$StartDay" },
+                    new Date(UserMedicne.StartDay).getMonth() + 1,
+                ],
+            },
+            MedicneName: UserMedicne.MedicneName,
+        });
+
         return Usermedicne;
     };
     //add
@@ -45,21 +58,10 @@ class MedicneUserService {
         let Usermedicne = await MedicneUser.findOne({ _id: UserMedicne._id });
         return Usermedicne;
     };
-    updateMedUser = async(MedUser, userD) => {
-        let user = await userService.findUserId(userD);
-        let medUser = {
-            userId: user._id,
-            MedicneName: MedUser.MedicneName,
-            MgQuantity: MedUser.MgQuantity,
-            TakingTime: MedUser.TakingTime,
-            AmountOfPills: MedUser.AmountOfPills,
-            CapletsByHour: MedUser.CapletsByHour,
-            StartDay: MedUser.StartDay,
-        };
-
+    updateMedUser = async(MedUser) => {
         let result = await this.getMedicneUserById(MedUser);
         // for (let i = 0; i < result.length; i++) {
-        medUser = result;
+        let medUser = result;
         if (
             MedUser.MedicneName != "" &&
             MedUser.MedicneName != result.MedicneName
@@ -87,13 +89,10 @@ class MedicneUserService {
         ) {
             medUser.AmountOfPills = MedUser.AmountOfPills;
         }
-        if (
-            MedUser.CapletsByHour != "" &&
-            MedUser.CapletsByHour != result.CapletsByHour
-        ) {
-            medUser.CapletsByHour = MedUser.CapletsByHour;
+        if (MedUser.ForHowLong != "" && MedUser.ForHowLong != result.ForHowLong) {
+            medUser.ForHowLong = MedUser.ForHowLong;
         }
-        if (MedUser.StartDay != undefined && MedUser.StartDay != result.StartDay) {
+        if (MedUser.StartDay != "" && MedUser.StartDay != result.StartDay) {
             medUser.StartDay = MedUser.StartDay;
         }
 
@@ -111,13 +110,15 @@ class MedicneUserService {
 
     findMedUser = async(user) => {
         let findMedUser = await MedicneUser.find({ userId: user._id });
+
         return findMedUser;
     };
     checkAlertTime = (ele, date) => {
         if (
             ele.TakingTime.Morning.approvDate.toISOString().split("T")[0] ==
-            new Date().toISOString().split("T")[0] ||
-            ele.TakingTime.Morning.approvDate.getDate() <= date.getDate()
+            new Date().toISOString().split("T")[0] &&
+            ele.TakingTime.Morning.approvDate.getDate() <= date.getDate() &&
+            ele.TakingTime.Morning.time != ""
         ) {
             if (
                 ele.TakingTime.Morning.alert.substring(0, 2) == new Date().getHours() &&
@@ -128,8 +129,9 @@ class MedicneUserService {
             }
         } else if (
             ele.TakingTime.Noon.approvDate.toISOString().split("T")[0] ==
-            new Date().toISOString().split("T")[0] ||
-            ele.TakingTime.Noon.approvDate.getDate() <= date.getDate()
+            new Date().toISOString().split("T")[0] &&
+            ele.TakingTime.Noon.approvDate.getDate() <= date.getDate() &&
+            ele.TakingTime.Noon.time != ""
         ) {
             if (
                 ele.TakingTime.Noon.alert.substring(0, 2) == new Date().getHours() &&
@@ -141,8 +143,9 @@ class MedicneUserService {
         }
         if (
             ele.TakingTime.Evening.approvDate.toISOString().split("T")[0] ==
-            new Date().toISOString().split("T")[0] ||
-            ele.TakingTime.Evening.approvDate.getDate() <= date.getDate()
+            new Date().toISOString().split("T")[0] &&
+            ele.TakingTime.Evening.approvDate.getDate() <= date.getDate() &&
+            ele.TakingTime.Evening.time != ""
         ) {
             if (
                 ele.TakingTime.Evening.alert.substring(0, 2) == new Date().getHours() &&
@@ -157,68 +160,197 @@ class MedicneUserService {
     };
     //add
     updateApproveDate = (medDetails, ele, text) => {
-        if (ele == "Morning") {
+        if (ele == "Morning" && medDetails.TakingTime.Morning.status != text) {
             medDetails.TakingTime.Morning.status = text;
+        } else {
+            medDetails.TakingTime.Morning.status = "";
         }
-        if (ele == "Noon") {
+        if (ele == "Noon" && medDetails.TakingTime.Noon.status != text) {
             medDetails.TakingTime.Noon.status = text;
+        } else {
+            medDetails.TakingTime.Noon.status = "";
         }
-        if (ele == "Evening") {
+        if (ele == "Evening" && medDetails.TakingTime.Evening.status != text) {
             medDetails.TakingTime.Evening.status = text;
+        } else {
+            medDetails.TakingTime.Evening.status = "";
         }
-        console.log(ele);
         return medDetails;
     };
     //add
-    approvDate = (med) => {
-        if (
-            med.TakingTime.Morning.time == "Morning" &&
-            med.TakingTime.Morning.status == "send"
-        ) {
+    approvDate = async(med) => {
+        console.log(med);
+        if (med != undefined) {
+            console.log("here");
             if (
-                med.TakingTime.Morning.approvDate.getDate() !=
-                new Date(med.StartDay.getDate() + med.CapletsByHour - 1).getDate()
+                med.TakingTime.Morning.time == "Morning" &&
+                med.TakingTime.Morning.status == "send"
             ) {
-                med.TakingTime.Morning.approvDate = dateT.addDays(
-                    med.TakingTime.Morning.approvDate,
-                    1
-                );
-                return med;
+                if (
+                    med.TakingTime.Morning.approvDate.getDate() !=
+                    new Date(med.StartDay.getDate() + med.ForHowLong - 1).getDate()
+                ) {
+                    med.TakingTime.Morning.approvDate = dateT.addDays(
+                        med.TakingTime.Morning.approvDate,
+                        1
+                    );
+                    return med;
+                }
             }
-        }
-        if (
-            med.TakingTime.Noon.time == "Noon" &&
-            med.TakingTime.Noon.status == "send"
-        ) {
             if (
-                med.TakingTime.Noon.approvDate.getDate() !=
-                new Date(med.StartDay.getDate() + med.CapletsByHour - 1).getDate()
+                med.TakingTime.Noon.time == "Noon" &&
+                med.TakingTime.Noon.status == "send"
             ) {
-                console.log(med.TakingTime.Noon.approvDate);
-                med.TakingTime.Noon.approvDate = dateT.addDays(
-                    med.TakingTime.Noon.approvDate,
-                    1
-                );
-                console.log(med.TakingTime.Noon.approvDate);
-                return med;
+                if (
+                    med.TakingTime.Noon.approvDate.getDate() !=
+                    new Date(med.StartDay.getDate() + med.ForHowLong - 1).getDate()
+                ) {
+                    med.TakingTime.Noon.approvDate = dateT.addDays(
+                        med.TakingTime.Noon.approvDate,
+                        1
+                    );
+                    return med;
+                }
             }
-        }
-        if (
-            med.TakingTime.Evening.time == "Evening" &&
-            med.TakingTime.Evening.status == "send"
-        ) {
             if (
-                med.TakingTime.Evening.approvDate.getDate() !=
-                new Date(med.StartDay.getDate() + med.CapletsByHour - 1).getDate()
+                med.TakingTime.Evening.time == "Evening" &&
+                med.TakingTime.Evening.status == "send"
             ) {
-                med.TakingTime.Evening.approvDate = dateT.addDays(
-                    med.TakingTime.Evening.approvDate,
-                    1
-                );
-                return med;
+                if (
+                    med.TakingTime.Evening.approvDate.getDate() !=
+                    new Date(med.StartDay.getDate() + med.ForHowLong - 1).getDate()
+                ) {
+                    med.TakingTime.Evening.approvDate = dateT.addDays(
+                        med.TakingTime.Evening.approvDate,
+                        1
+                    );
+                    return med;
+                }
             }
         }
         return false;
+    };
+    //add
+    updateTheDurationOfMed = (med) => {
+        console.log(med);
+        if (
+            med.TakingTime.Morning.time == "Morning" &&
+            med.TakingTime.Morning.approvDate.toISOString().split("T")[0] !=
+            new Date().toISOString().split("T")[0] &&
+            med.TakingTime.Noon.time == "Noon" &&
+            med.TakingTime.Noon.approvDate.toISOString().split("T")[0] !=
+            new Date().toISOString().split("T")[0] &&
+            med.TakingTime.Evening.time == "Evening" &&
+            med.TakingTime.Evening.approvDate.toISOString().split("T")[0] !=
+            new Date().toISOString().split("T")[0]
+        ) {
+            return true;
+        } else if (
+            (med.TakingTime.Morning.time == "Morning" &&
+                med.TakingTime.Morning.approvDate.toISOString().split("T")[0] !=
+                new Date().toISOString().split("T")[0] &&
+                med.TakingTime.Noon.time == "Noon" &&
+                med.TakingTime.Noon.approvDate.toISOString().split("T")[0] !=
+                new Date().toISOString().split("T")[0]) ||
+            (med.TakingTime.Morning.time == "Morning" &&
+                med.TakingTime.Morning.approvDate.toISOString().split("T")[0] !=
+                new Date().toISOString().split("T")[0] &&
+                med.TakingTime.Evening.time == "Evening" &&
+                med.TakingTime.Evening.approvDate.toISOString().split("T")[0] !=
+                new Date().toISOString().split("T")[0])
+        ) {
+            return true;
+        } else if (
+            med.TakingTime.Noon.time == "Noon" &&
+            med.TakingTime.Noon.approvDate.toISOString().split("T")[0] !=
+            new Date().toISOString().split("T")[0] &&
+            med.TakingTime.Evening.time == "Evening" &&
+            med.TakingTime.Evening.approvDate.toISOString().split("T")[0] !=
+            new Date().toISOString().split("T")[0]
+        ) {
+            return true;
+        } else if (
+            med.TakingTime.Morning.time == "Morning" &&
+            (med.TakingTime.Morning.approvDate.toISOString().split("T")[0] !=
+                new Date().toISOString().split("T")[0] ||
+                med.TakingTime.Noon.time == "Noon") &&
+            (med.TakingTime.Noon.approvDate.toISOString().split("T")[0] !=
+                new Date().toISOString().split("T")[0] ||
+                med.TakingTime.Evening.time == "Evening") &&
+            med.TakingTime.Evening.approvDate.toISOString().split("T")[0] !=
+            new Date().toISOString().split("T")[0]
+        ) {
+            return true;
+        }
+        return false;
+    };
+    didNotApprov = async(med, user) => {
+        let date = new Date();
+        let flag = false;
+        if (
+            med.TakingTime.Morning.approvDate.toISOString().split("T")[0] <
+            new Date().toISOString().split("T")[0] &&
+            med.TakingTime.Morning.approvDate.toISOString().split("T")[0] <=
+            new Date(
+                date.setDate(
+                    med.TakingTime.Morning.approvDate.getDate() + med.ForHowLong
+                )
+            )
+            .toISOString()
+            .split("T")[0]
+        ) {
+            med.TakingTime.Morning.approvDate = dateT.addDays(
+                med.TakingTime.Morning.approvDate,
+                1
+            );
+            await this.updateMedApprove(user, med);
+            flag = true;
+        }
+        if (
+            med.TakingTime.Noon.approvDate.toISOString().split("T")[0] <
+            new Date().toISOString().split("T")[0] &&
+            med.TakingTime.Noon.approvDate.toISOString().split("T")[0] <=
+            new Date(
+                date.setDate(
+                    med.TakingTime.Noon.approvDate.getDate() + med.ForHowLong
+                )
+            )
+            .toISOString()
+            .split("T")[0]
+        ) {
+            med.TakingTime.Noon.approvDate = dateT.addDays(
+                med.TakingTime.Noon.approvDate,
+                1
+            );
+            await this.updateMedApprove(user, med);
+            flag = true;
+        }
+        if (
+            med.TakingTime.Evening.approvDate.toISOString().split("T")[0] <
+            new Date().toISOString().split("T")[0] &&
+            med.TakingTime.Evening.approvDate.toISOString().split("T")[0] <=
+            new Date(
+                date.setDate(
+                    med.TakingTime.Evening.approvDate.getDate() + med.ForHowLong
+                )
+            )
+            .toISOString()
+            .split("T")[0]
+        ) {
+            med.TakingTime.Evening.approvDate = dateT.addDays(
+                med.TakingTime.Evening.approvDate,
+                1
+            );
+            await this.updateMedApprove(user, med);
+            flag = true;
+        }
+        if (flag) {
+            console.log(flag);
+            return flag;
+        } else {
+            console.log(flag);
+            return false;
+        }
     };
 }
 const MedicneuserService = new MedicneUserService();

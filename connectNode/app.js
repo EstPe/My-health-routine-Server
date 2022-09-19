@@ -7,6 +7,7 @@ const pharmacyRouter = require("./routers/pharmacy.router");
 const MedicneUserRouter = require("./routers/MedicneUser.router");
 const CheckOutRouter = require("./routers/checkout.router");
 const OrderRouter = require("./routers/order.router");
+const MedicneRouter = require("./routers/MedDataBase.router");
 const config = require("config");
 require("./models/mongooseConection");
 const app = express();
@@ -27,6 +28,7 @@ app.use("/api/pharmacy", pharmacyRouter);
 
 //http://localhost:3000/api/cart  --- get
 app.use("/api/MedicneUser", MedicneUserRouter);
+app.use("/api/Medicne", MedicneRouter);
 
 //http://localhost:3000/api/cart  --- get
 app.use("/api/Order", OrderRouter);

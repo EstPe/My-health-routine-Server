@@ -30,8 +30,9 @@ let NewSchema = new mongoose.Schema({
         },
     },
     AmountOfPills: { type: Number },
-    CapletsByHour: { type: Number },
+    ForHowLong: { type: Number },
     StartDay: { type: Date },
+    expandDateNo: { type: Number, default: 0 },
 });
 
 module.exports = mongoose.model("medicneusers", NewSchema);
