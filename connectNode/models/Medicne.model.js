@@ -7,10 +7,6 @@ let NewSchema = new mongoose.Schema({
         AmountOfPills: { type: Number },
         ForHowLong: { type: Number },
     },
-    DrugConflict: [{
-        medName: { type: String },
-        _id: false,
-    }, ],
 });
 
 module.exports = mongoose.model("medicans", NewSchema);

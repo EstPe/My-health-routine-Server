@@ -9,7 +9,6 @@ class CheckoutService {
         }
     };
     addItemToCheckOut = (cartList, newCHeckOut) => {
-        console.log(cartList);
         Checkout.updateOne({ _id: newCHeckOut._id }, {
                 $addToSet: {
                     Cart: {

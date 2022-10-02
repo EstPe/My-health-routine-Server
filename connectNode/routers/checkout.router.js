@@ -3,6 +3,7 @@ const auth = require("../middlewares/auth.middleware");
 const Checkout = require("../models/checkout.model");
 const userService = require("../services/user.service");
 const productService = require("../services/product.service");
+const statisticsService = require("../services/statistics.service");
 const checkoutService = require("../services/checkout.service");
 
 const router = express.Router();
@@ -22,6 +23,11 @@ router.get("/checkouts", auth, async(req, res) => {
                     product.Quantity = checkout[j].Cart[i].quantity;
                     product._id = checkout[j]._id;
                     console.log(product);
+                    statisticsService.addTimeStamp(product._id, {
+                        quantity: checkout[j].Cart[i].quantity,
+                        date: new Date(),
+                    });
+                    console.log("innnnnn");
                     orderArr.push(product);
                 }
             }
@@ -30,21 +36,17 @@ router.get("/checkouts", auth, async(req, res) => {
     } else res.status(401);
 });
 router.put("/updateDelivery/:_id", auth, async(req, res) => {
-    console.log(req.body);
-    console.log(req.params);
-    req.body.delivered = true;
     let getCheckout = await checkoutService.updateCheckOut(
         req.params._id,
         req.body
     );
-    console.log(getCheckout);
     if (getCheckout) res.send(getCheckout);
     else res.status(401);
 });
 
-router.get("/checkoutAllproductBydates", auth, async(req, res) => {
-    let getCheckout = await Checkout.find({});
-    res.send(getCheckout);
-});
+// router.get("/checkoutAllproductBydates", auth, async(req, res) => {
+//     let getCheckout = await Checkout.find({});
+//     res.send(getCheckout);
+// });
 
 module.exports = router;

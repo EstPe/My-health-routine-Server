@@ -18,6 +18,7 @@ let NewSchema = new mongoose.Schema({
     image: { type: String, required: true },
     access: { type: Number, required: true },
     loginAttempts: { type: Number, required: true },
+    age: { type: Number },
     height: { type: Number },
     weight: { type: Number },
 });

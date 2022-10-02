@@ -96,7 +96,7 @@ class EmailService {
         var mailOptions = {
             from: "peretz398@gmail.com",
             to: "peretz398@gmail.com",
-            subject: `notice you miss take a pill`,
+            subject: `notice you miss take a day`,
             html: `
       <h1> hey user you miss take</h1>
       <h4>we expand your taking dates for one more day </h4>
@@ -112,7 +112,7 @@ class EmailService {
             to: "peretz398@gmail.com",
             subject: `notice you did not approve`,
             html: `
-      <h1> hey user you did not approv taking pills latly</h1>
+      <h1> hey user you did not approv taking pills lately</h1>
       <h4>we will stop sending reminder  </h4>
       <h5>My Health Routine team</h5>
         <img src="https://www.jetsetter.com//uploads/sites/7/2018/04/15AF_lmk-1380x690.jpeg" style="max-height: 250px; width: 50%; margin-right: 25%" />
@@ -124,10 +124,8 @@ class EmailService {
         transporter.sendMail(mailOptions, function(error, info) {
             if (error) {
                 console.log(error);
-                //  res.json({ message: "email did not send" });
             } else {
                 console.log("Email sent: " + info.response);
-                // res.json({ message: "email has been send" });
             }
         });
     }

@@ -13,32 +13,25 @@ router.get("/getUserOrder", auth, async(req, res) => {
     if (order) {
         for (let i = 0; i < order.Cart.length; i++) {
             let product = await productService.getProduct(order.Cart[i].productId);
-            orderArr.push(product);
+            orderArr.push({ product, date: order.Cart[i].date });
         }
         res.send(orderArr);
     }
     res.status(404);
 });
-let orderArr = [];
+
 router.get("/getOrders", auth, async(req, res) => {
+    let orderArr = [];
     let user = await userService.findUserId(req.user.email);
     if (user.access > 1) {
-        let order = await Order.find({ userId: user._id });
+        let order = await Order.find();
 
         for (let j = 0; j < order.length; j++) {
             for (let i = 0; i < order[j].Cart.length; i++) {
                 let product = await productService.getProduct(
                     order[j].Cart[i].productId
                 );
-
-                orderArr.push(product);
-                // let product = async() => {
-                //     let pro = await productService.getProduct(ele.Cart[i].productId);
-                //     return pro;
-                // }
-                // product().then(function(result) {
-                //     console.log(result) // "Some User token"
-                // });
+                orderArr.push({ product, date: order[j].Cart[i].date });
             }
         }
         res.send(orderArr);

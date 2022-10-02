@@ -1,27 +1,29 @@
 const Order = require("../models/orders.model");
 class OrderService {
+    //add
     addOrder = async(cartList, userId) => {
-        let order = await Order.create({
+        let orderUserId;
+        orderUserId = await Order.findOne({
             userId: userId,
         });
+
+        if (!orderUserId) {
+            orderUserId = await Order.create({
+                userId: userId,
+            });
+        }
+
         for (let i = 0; i < cartList.Cart.length; i++) {
-            this.addItemToOrder(cartList.Cart[i], order.userId);
+            this.addItemToOrder(cartList.Cart[i], orderUserId.userId);
         }
     };
-    findOrder = async(cartList, userId) => {
-        let findUserId = await Order.findOne({
-            userId: userId,
-        });
-        if (findUserId) {
-            console.log(cartList);
-            this.addItemToOrder(cartList, findUserId.userId);
-        } else this.addOrder(cartList, userId);
-    };
+
     addItemToOrder = (cartList, orderUserId) => {
         Order.updateOne({ userId: orderUserId }, {
                 $addToSet: {
                     Cart: {
                         productId: cartList.productId,
+                        date: new Date(),
                     },
                 },
             },

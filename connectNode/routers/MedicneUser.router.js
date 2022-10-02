@@ -7,8 +7,6 @@ const User = require("../models/user.model");
 const MedicneService = require("../services/MedDataBase.service");
 const email = require("../services/sendEmail.service");
 const dateT = require("date-and-time");
-const { Worker } = require("worker_threads");
-const process = require("process");
 var didApprove;
 const router = express.Router();
 
@@ -115,7 +113,6 @@ router.get("/sendReminder", auth, async(req, res) => {
                 findMedUser[i],
                 user
             );
-            console.log(didNot_Approv);
             if (didNot_Approv) {
                 if (findMedUser[i].expandDateNo == 5) {
                     findMedUser[i].TakingTime.Morning.approvDate = dateT.addDays(
@@ -131,20 +128,18 @@ router.get("/sendReminder", auth, async(req, res) => {
                         findMedUser[i].ForHowLong
                     );
                     findMedUser[i].ForHowLong = 0;
-                    console.log("expend");
                     await MedicneUserService.updateMedApprove(user, findMedUser[i]);
                     email.stopTaking(req.user.email);
                 } else {
                     findMedUser[i].ForHowLong += 1;
                     findMedUser[i].expandDateNo += 1;
-                    console.log(findMedUser[i]);
                     await MedicneUserService.updateMedApprove(user, findMedUser[i]);
                     email.missTaking(req.user.email);
                 }
             }
             if (
                 MedicneUserService.checkAlertTime(findMedUser[i], date) &&
-                findMedUser[i].expandDateNo !== 3
+                findMedUser[i].expandDateNo !== 5
             ) {
                 let updateApproveDate = MedicneUserService.updateApproveDate(
                     findMedUser[i],
@@ -162,26 +157,74 @@ router.get("/sendReminder", auth, async(req, res) => {
 
     res.send(findMedUser);
 });
+router.get("/didnotAprov", auth, async(req, res) => {
+    let user = await userService.findUserId(req.user.email);
+    let didNot_Approv = await MedicneUserService.didNotApprov(didApprove, user);
+    let date = new Date();
+    date.setDate(didApprove.StartDay.getDate() + didApprove.ForHowLong);
+    if (!didNot_Approv) {
+        if (
+            didApprove.TakingTime.Morning.time != "" &&
+            didApprove.TakingTime.Morning.status == "send"
+        ) {
+            MedicneUserService.updateApproveDate(
+                didApprove,
+                MedicneUserService.checkAlertTime(didApprove, date),
+                "send"
+            );
+            didApprove.TakingTime.Morning.approvDate = dateT.addDays(
+                didApprove.TakingTime.Morning.approvDate,
+                1
+            );
+        } else if (
+            didApprove.TakingTime.Noon.time != "" &&
+            didApprove.TakingTime.Noon.status == "send"
+        ) {
+            MedicneUserService.updateApproveDate(
+                didApprove,
+                MedicneUserService.checkAlertTime(didApprove, date),
+                "send"
+            );
+            didApprove.TakingTime.Noon.approvDate = dateT.addDays(
+                didApprove.TakingTime.Noon.approvDate,
+                1
+            );
+        } else if (
+            didApprove.TakingTime.Evening.time != "" &&
+            didApprove.TakingTime.Evening.status == "send"
+        ) {
+            MedicneUserService.updateApproveDate(
+                didApprove,
+                MedicneUserService.checkAlertTime(didApprove, date),
+                "send"
+            );
+            didApprove.TakingTime.Evening.approvDate = dateT.addDays(
+                didApprove.TakingTime.Evening.approvDate,
+                1
+            );
+        }
+        let durationUpdate = await MedicneUserService.updateTheDurationOfMed(
+            didApprove
+        );
+        if (durationUpdate) {
+            didApprove.ForHowLong += 1;
+            didApprove.expandDateNo += 1;
+        }
+        await MedicneUserService.updateMedApprove(user, didApprove);
+        email.missTaking(req.user.email);
+    } else {
+        res.status(401);
+    }
+});
 //add
 router.get("/approved", auth, async(req, res) => {
     let user = await userService.findUserId(req.user.email);
     let updateMed;
-    // const worker = new Worker("./services/thread.service.js", {
-    //   workerData: { didApprove: findMedUser[i] },
-    // });
-    // console.log(process.pid);
-    // worker.on("message", (result) => {
-    //   didApprove = result;
-
-    //   console.log(`work: ${result}`);
-    // });
-
-    // worker.on("exit", (code) => {
-    //   console.log("Process exit event with code: ", code);
-    // });
     didApprove = await MedicneUserService.approvDate(didApprove);
     if (didApprove) {
-        let durationUpdate = MedicneUserService.updateTheDurationOfMed(didApprove);
+        let durationUpdate = await MedicneUserService.updateTheDurationOfMed(
+            didApprove
+        );
         if (durationUpdate) {
             if (didApprove.ForHowLong >= 0) {
                 didApprove.ForHowLong -= 1;
@@ -190,7 +233,6 @@ router.get("/approved", auth, async(req, res) => {
                 }
             }
         }
-
         updateMed = await MedicneUserService.updateMedApprove(user, didApprove);
     }
     // }

@@ -2,6 +2,7 @@ const express = require("express");
 const auth = require("../middlewares/auth.middleware");
 const Product = require("../models/product.model");
 const productService = require("../services/product.service");
+const statisticsService = require("../services/statistics.service");
 const email = require("../services/sendEmail.service");
 const userService = require("../services/user.service");
 const router = express.Router();
@@ -20,7 +21,8 @@ router.get("/product/:SerialNumber", auth, async(req, res) => {
     res.send(allProducts);
 });
 
-router.post("/addProduct", async(req, res) => {
+router.post("/addProduct", auth, async(req, res) => {
+    let user = await userService.findUserId(req.user.email);
     let lastSerialNumber = await Product.count();
     let product = {
         SerialNumber: ++lastSerialNumber,
@@ -34,10 +36,18 @@ router.post("/addProduct", async(req, res) => {
     let exsit = await productService.productExist(product);
     if (exsit) {
         res.status(401).json({
-            message: "User alredy exsit!",
+            message: "Product already exist!",
         });
     } else {
         result = await productService.addProduct(product);
+        result.productId = result._id;
+        result = await statisticsService.addProductStatistics(result.productId, {
+            time: [{
+                quantity: result.Quantity,
+                date: new Date(),
+                age: user.age,
+            }, ],
+        });
         res.send(result);
     }
 });
@@ -88,7 +98,6 @@ router.get("/maxSales", auth, async(req, res) => {
         });
         MaxSalesProduct.push(product);
     }
-    console.log(MaxSalesProduct);
     if (MaxSales) res.send(MaxSalesProduct);
     else res.status(401);
 });
@@ -121,6 +130,7 @@ router.post("/command/:SerialNumber", auth, async(req, res) => {
 });
 router.get("/getAllCommands/:SerialNumber", auth, async(req, res) => {
     let allCommands = await Product.find({ SerialNumber: req.params.SerialNumber }, { Reviews: 1 });
+    console.log(req.params.SerialNumber);
     if (allCommands) res.send(allCommands);
     else res.status(401);
 });

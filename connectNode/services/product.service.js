@@ -1,4 +1,5 @@
 const Product = require("../models/product.model");
+const Statistics = require("../models/statistics.model");
 class ProductService {
     getAllProducts = async() => {
         let result = await Product.find();

@@ -54,9 +54,14 @@ class MedicneUserService {
         return Usermedicne;
     };
     //add
-    getMedicneUserById = async(UserMedicne) => {
-        let Usermedicne = await MedicneUser.findOne({ _id: UserMedicne._id });
-        return Usermedicne;
+    //   getMedicneUserById = async (UserMedicne) => {
+    //     let Usermedicne = await MedicneUser.findOne({ _id: UserMedicne._id });
+    //     return Usermedicne;
+    //   };
+    findMedUser = async(user) => {
+        let findMedUser = await MedicneUser.find({ userId: user._id });
+
+        return findMedUser;
     };
     updateMedUser = async(MedUser) => {
         let result = await this.getMedicneUserById(MedUser);
@@ -108,17 +113,12 @@ class MedicneUserService {
         return false;
     };
 
-    findMedUser = async(user) => {
-        let findMedUser = await MedicneUser.find({ userId: user._id });
-
-        return findMedUser;
-    };
     checkAlertTime = (ele, date) => {
         if (
             ele.TakingTime.Morning.approvDate.toISOString().split("T")[0] ==
-            new Date().toISOString().split("T")[0] &&
-            ele.TakingTime.Morning.approvDate.getDate() <= date.getDate() &&
-            ele.TakingTime.Morning.time != ""
+            new Date().toISOString().split("T")[0] ||
+            (ele.TakingTime.Morning.approvDate.getDate() <= date.getDate() &&
+                ele.TakingTime.Morning.time != "")
         ) {
             if (
                 ele.TakingTime.Morning.alert.substring(0, 2) == new Date().getHours() &&
@@ -129,9 +129,9 @@ class MedicneUserService {
             }
         } else if (
             ele.TakingTime.Noon.approvDate.toISOString().split("T")[0] ==
-            new Date().toISOString().split("T")[0] &&
-            ele.TakingTime.Noon.approvDate.getDate() <= date.getDate() &&
-            ele.TakingTime.Noon.time != ""
+            new Date().toISOString().split("T")[0] ||
+            (ele.TakingTime.Noon.approvDate.getDate() <= date.getDate() &&
+                ele.TakingTime.Noon.time != "")
         ) {
             if (
                 ele.TakingTime.Noon.alert.substring(0, 2) == new Date().getHours() &&
@@ -143,9 +143,9 @@ class MedicneUserService {
         }
         if (
             ele.TakingTime.Evening.approvDate.toISOString().split("T")[0] ==
-            new Date().toISOString().split("T")[0] &&
-            ele.TakingTime.Evening.approvDate.getDate() <= date.getDate() &&
-            ele.TakingTime.Evening.time != ""
+            new Date().toISOString().split("T")[0] ||
+            (ele.TakingTime.Evening.approvDate.getDate() <= date.getDate() &&
+                ele.TakingTime.Evening.time != "")
         ) {
             if (
                 ele.TakingTime.Evening.alert.substring(0, 2) == new Date().getHours() &&
@@ -179,9 +179,7 @@ class MedicneUserService {
     };
     //add
     approvDate = async(med) => {
-        console.log(med);
         if (med != undefined) {
-            console.log("here");
             if (
                 med.TakingTime.Morning.time == "Morning" &&
                 med.TakingTime.Morning.status == "send"
@@ -231,8 +229,7 @@ class MedicneUserService {
         return false;
     };
     //add
-    updateTheDurationOfMed = (med) => {
-        console.log(med);
+    updateTheDurationOfMed = async(med) => {
         if (
             med.TakingTime.Morning.time == "Morning" &&
             med.TakingTime.Morning.approvDate.toISOString().split("T")[0] !=
@@ -246,21 +243,25 @@ class MedicneUserService {
         ) {
             return true;
         } else if (
-            (med.TakingTime.Morning.time == "Morning" &&
-                med.TakingTime.Morning.approvDate.toISOString().split("T")[0] !=
-                new Date().toISOString().split("T")[0] &&
-                med.TakingTime.Noon.time == "Noon" &&
-                med.TakingTime.Noon.approvDate.toISOString().split("T")[0] !=
-                new Date().toISOString().split("T")[0]) ||
-            (med.TakingTime.Morning.time == "Morning" &&
-                med.TakingTime.Morning.approvDate.toISOString().split("T")[0] !=
-                new Date().toISOString().split("T")[0] &&
-                med.TakingTime.Evening.time == "Evening" &&
-                med.TakingTime.Evening.approvDate.toISOString().split("T")[0] !=
-                new Date().toISOString().split("T")[0])
+            med.TakingTime.Morning.time == "Morning" &&
+            med.TakingTime.Morning.approvDate.toISOString().split("T")[0] !=
+            new Date().toISOString().split("T")[0] &&
+            med.TakingTime.Noon.time == "Noon" &&
+            med.TakingTime.Noon.approvDate.toISOString().split("T")[0] !=
+            new Date().toISOString().split("T")[0]
         ) {
+            if (med.TakingTime.Evening.time == "Evening") return false;
             return true;
         } else if (
+            med.TakingTime.Morning.time == "Morning" &&
+            med.TakingTime.Morning.approvDate.toISOString().split("T")[0] !=
+            new Date().toISOString().split("T")[0] &&
+            med.TakingTime.Evening.time == "Evening" &&
+            med.TakingTime.Evening.approvDate.toISOString().split("T")[0] !=
+            new Date().toISOString().split("T")[0]
+        )
+            return true;
+        else if (
             med.TakingTime.Noon.time == "Noon" &&
             med.TakingTime.Noon.approvDate.toISOString().split("T")[0] !=
             new Date().toISOString().split("T")[0] &&
@@ -287,6 +288,7 @@ class MedicneUserService {
     didNotApprov = async(med, user) => {
         let date = new Date();
         let flag = false;
+
         if (
             med.TakingTime.Morning.approvDate.toISOString().split("T")[0] <
             new Date().toISOString().split("T")[0] &&

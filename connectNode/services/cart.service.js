@@ -21,7 +21,6 @@ class CartService {
         for (let i = find.Cart.length - 1; i >= 0; i--) {
             if (cart.productId === JSON.parse(find.Cart[i].productId)) {
                 console.log(typeof find.Cart[i].quantity);
-                // cart.quantity += find.Cart[i].quantity;
             }
         }
         let result = await Cart.updateOne({

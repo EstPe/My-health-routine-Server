@@ -7,6 +7,8 @@ const userService = require("../services/user.service");
 const checkoutService = require("../services/checkout.service");
 const productService = require("../services/product.service");
 const email = require("../services/sendEmail.service");
+const statisticsService = require("../services/statistics.service");
+
 const orderService = require("../services/order.service");
 
 const router = express.Router();
@@ -98,7 +100,6 @@ router.post("/updateQuantity", auth, async(req, res) => {
 router.delete("/checkout", auth, async(req, res) => {
     let user = await userService.findUserId(req.user.email);
     req.body.userId = user._id;
-
     let cartList = await Cart.findOne({
         userId: req.body.userId,
     }, { Cart: 1 });
@@ -107,8 +108,18 @@ router.delete("/checkout", auth, async(req, res) => {
         let exist = await checkoutService.checkout(
             new Date().toISOString().split("T")[0]
         );
-        console.log(cartList);
-        await orderService.findOrder(cartList, req.body.userId);
+        await orderService.addOrder(cartList, req.body.userId);
+
+        for (let i = cartList.Cart.length - 1; i >= 0; i--) {
+            let product = await productService.getProduct(cartList.Cart[i].productId);
+            if (product) {
+                statisticsService.addProductStatistics(product._id, {
+                    quantity: cartList.Cart[i].quantity,
+                    date: new Date(),
+                    age: user.age,
+                });
+            }
+        }
         if (!exist) {
             await checkoutService.addCheckOut(cartList);
         } else {
@@ -117,12 +128,12 @@ router.delete("/checkout", auth, async(req, res) => {
             }
         }
         let sum = 0;
+        console.log(cartList.Cart.length);
         for (let i = cartList.Cart.length - 1; i >= 0; i--) {
             let productOriginal = await productService.getProduct(
                 cartList.Cart[i].productId
             );
             sum += JSON.parse(productOriginal.price);
-            // if (productOriginal.Quantity >= cartList.Cart[i].quantity) {
             productOriginal.Quantity -= cartList.Cart[i].quantity;
             let pro = {
                 SerialNumber: cartList.Cart[i].productId,
@@ -130,13 +141,7 @@ router.delete("/checkout", auth, async(req, res) => {
                 Quantity_Of_Purchases: (productOriginal.Quantity_Of_Purchases += 1),
             };
             await productService.updateProduct(pro);
-            // } else {
-            //     res.status(401);
-            //     return;
-            // }
-            console.log(sum);
         }
-        console.log(`sum ${sum}`);
         email.order(cartList, user, sum);
 
         let find = await Cart.deleteOne({
